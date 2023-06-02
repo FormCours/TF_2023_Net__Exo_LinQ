@@ -150,7 +150,113 @@ var result_2_7b = from s in context.Students
                       Section = s.Section_ID,
                       Result_100 = s.Year_Result * 5
                   };
+#endregion
 
 
+#region Exo 04
+// Exercice 4.9 Donner à chaque étudiant ayant obtenu un résultat annuel supérieur ou égal à 12 son grade en fonction de son résultat annuel et sur base de la table grade. La liste doit être classée dans l’ordre alphabétique des grades attribués.
+var result_4_9a = from st in context.Students
+                  from g in context.Grades
+                  where st.Year_Result >= g.Lower_Bound && st.Year_Result <= g.Upper_Bound && st.Year_Result >= 12
+                  orderby g.GradeName ascending
+                  select new
+                  {
+                      Nom = st.Last_Name,
+                      Grade = g.GradeName,
+                      Resultat = st.Year_Result
+                  };
+
+var result_4_9b = context.Students
+                        .Where(st => st.Year_Result >= 12)
+                        .Select(st => new
+                        {
+                            Nom = st.Last_Name,
+                            Grade = context.Grades.Single(g => st.Year_Result >= g.Lower_Bound && st.Year_Result <= g.Upper_Bound).GradeName,
+                            Resultat = st.Year_Result
+                        })
+                        .OrderBy(res => res.Grade);
+
+
+Console.WriteLine("Exo 4.9");
+Console.WriteLine("*******");
+foreach (var sg in result_4_9b)
+{
+    Console.WriteLine($"{sg.Nom} {sg.Resultat} {sg.Grade}");
+}
+Console.WriteLine();
+
+
+// Exercice 4.10 Donner la liste des professeurs et la section à laquelle ils se rapportent ainsi que le(s) cour(s)(nom du cours et crédits) dont le professeur est responsable. La liste est triée par ordre décroissant des crédits attribués à un cours.
+var result_4_10a = from p in context.Professors
+                  join s in context.Sections 
+                    on p.Section_ID equals s.Section_ID
+                  join c in context.Courses 
+                    on p.Professor_ID equals c.Professor_ID
+                    into courses
+                  from cp in courses.DefaultIfEmpty()
+                  orderby cp?.Course_Ects descending
+                  select new
+                  {
+                      Prof = p.Professor_Name,
+                      Section = s.Section_Name,
+                      Cours = cp?.Course_Name,
+                      Etcs = cp?.Course_Ects
+                  };
+
+var result_4_10b = context.Professors
+                    .Join(context.Sections,
+                        p => p.Section_ID,
+                        s => s.Section_ID,
+                        (p, s) => new { p, s }
+                     )
+                    .GroupJoin(context.Courses,
+                        ps => ps.p.Professor_ID,
+                        c => c.Professor_ID,
+                        (ps, courses) => new
+                        {
+                            Prof = ps.p.Professor_Name,
+                            Section = ps.s.Section_Name,
+                            Courses = courses
+                        }
+                    );
+
+Console.WriteLine("Exo 4.10");
+Console.WriteLine("********");
+foreach(var info in result_4_10a)
+{
+    Console.WriteLine($"{info.Prof} {info.Section} {info.Cours} {info.Etcs}");
+}
+
+// Exercice 4.11 Donner pour chaque professeur son id et le total des crédits ECTS (« ECTSTOT ») qui lui sont attribués. La liste proposée est triée par ordre décroissant de la somme des crédits alloués.
+
+var result_4_11a = from p in context.Professors
+                   join c in context.Courses
+                     on p.Professor_ID equals c.Professor_ID
+                     into courses
+                   orderby courses.Sum(c => c.Course_Ects) descending
+                   select new
+                   {
+                       ProfId = p.Professor_ID,
+                       EctsTot = courses.Any() ? (double?)courses.Sum(c => c.Course_Ects) : null
+                   };
+
+var result_4_11b = context.Professors
+                          .GroupJoin(context.Courses,
+                                p => p.Professor_ID,
+                                c => c.Professor_ID,
+                                (p, courses) => new
+                                {
+                                    ProfId = p.Professor_ID,
+                                    EctsTot = courses.Any() ? (double?)courses.Sum(c => c.Course_Ects) : null
+                                }
+                            )
+                          .OrderByDescending(res => res.EctsTot);
+
+Console.WriteLine("Exo 4.11");
+Console.WriteLine("********");
+foreach (var info in result_4_11b)
+{
+    Console.WriteLine($"{info.ProfId} {info.EctsTot}");
+}
 
 #endregion
